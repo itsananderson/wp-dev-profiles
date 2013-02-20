@@ -5,6 +5,7 @@
  * Description: Save and activate theme and plugin profiles for different projects
  * Plugin Author: Will Anderson
  * Author URI: http://www.itsananderson.com/
+ * Version: 1.0
  */
 
 class WP_Dev_Profiles {
