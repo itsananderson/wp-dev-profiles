@@ -26,7 +26,7 @@ class WP_Dev_Profiles {
 			$profiles[$_POST['profile-name']] = array(
 				'template' => get_option( 'template', 'Default' ),
 				'stylesheet' => get_option( 'stylesheet', 'default' ),
-				'plugins' => get_option( 'active_plugins', array( basename( dirname( __FILE__ ) ) . '/' . basename( __FILE__ ) ) ) // TODO: probably a better way to get the plugin slug
+				'plugins' => get_option( 'active_plugins', array( plugin_basename( __FILE__ ) ) )
 			);
 			update_option( self::DEV_PROFILES_OPTION_NAME, $profiles);
 			$message = "Profile '{$_POST['profile-name']}' successfully created";
