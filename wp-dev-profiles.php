@@ -7,83 +7,53 @@
  * Author URI: http://www.itsananderson.com/
  */
 
+class WP_Dev_Profiles {
 
-add_action('admin_menu', 'add_dev_profile_menu');
+	const DEV_PROFILES_OPTION_NAME = 'wp_dev_profiles';
 
-function add_dev_profile_menu() {
-	add_submenu_page('tools.php', 'Dev Profiles', 'Dev Profiles', 'administrator', __FILE__, 'dev_profile_page');
-}
-
-function dev_profile_page() {
-	$profiles = get_option('dev_profiles', array());
-	if ( 'Create Profile' == $_POST['submit'] ) {
-		$theme = get_option('current_theme', 'Default');
-		$template = get_option('template', 'default');
-		$stylesheet = get_option('stylesheet', 'default');
-		$plugins = get_option('active_plugins', array('dev-profiles/dev-profiles.php'));
-		$profiles[$_POST['profile_name']] = array('theme' => $theme, 'template' => $template, 'stylesheet' => $stylesheet, 'plugins' => $plugins);
-		update_option('dev_profiles', $profiles);
-		$message = "Profile '{$_POST['profile_name']}' successfully created";
-	} elseif ( 'Enable Profile' == $_POST['submit'] ) {
-		if ('' == $_POST['select_profile']) {
-			$message = "Oops, you need to select a Dev Profile before it can be enabled";
-		} else {
-			$profile = $profiles[$_POST['select_profile']];
-			update_option('current_theme', $profile['theme']);
-			update_option('template', $profile['template']);
-			update_option('stylesheet', $profile['stylesheet']);
-			update_option('active_plugins', $profile['plugins']);
-			$message = "Dev profile '{$_POST['select_profile']}' successfully enabled";
-		}
+	public static function start() {
+		add_action( 'admin_menu', array( __CLASS__, 'add_menu' ) );
 	}
-?>
-<div class="wrap">
-	<h2>Dev Profiles</h2>
-	<?php 
-	if ( isset($message) ) {
-		echo "<div class='updated'><p>$message</p></div>";
+
+	public static function add_menu() {
+		add_management_page( __( 'Developer Profiles' ), __( 'Developer Profiles' ), 'administrator', __FILE__, array( __CLASS__, 'dev_profile_page' ) );
 	}
-	?>
-	<div id="create-profile">
-		<h3>Create Dev Profile Using Current Theme and Plugins</h3>
-		<form method="POST">
-			<input type="text" name="profile_name" placeholder="Profile Name" />
-			<input type="submit" class="button" name="submit" value="Create Profile" />
-		</form>
-	</div>
-	<div id="activate-profile">
-		<h3>Enable a Dev Profile</h3>
-		<form method="POST">
-			<select id="select_profile" name="select_profile">
-				<option value=""></option>
-			<?php
-			foreach ( $profiles as $name => $profile ) {
-				echo "<option value='$name'>$name</option>";
+
+	public static function dev_profile_page() {
+		$profiles = get_option( self::DEV_PROFILES_OPTION_NAME, array());
+		if ( isset( $_POST['create-dev-profile'] ) ) {
+			$profiles[$_POST['profile-name']] = array(
+				'template' => get_option( 'template', 'Default' ),
+				'stylesheet' => get_option( 'stylesheet', 'default' ),
+				'plugins' => get_option( 'active_plugins', array( basename( dirname( __FILE__ ) ) . '/' . basename( __FILE__ ) ) ) // TODO: probably a better way to get the plugin slug
+			);
+			update_option( self::DEV_PROFILES_OPTION_NAME, $profiles);
+			$message = "Profile '{$_POST['profile-name']}' successfully created";
+		} elseif ( isset( $_POST['enable-dev-profile'] ) ) {
+			if ('' == $_POST['select-profile']) {
+				$message = "Oops, you need to select a Dev Profile before it can be enabled";
+			} else {
+				$profile = $profiles[$_POST['select-profile']];
+				switch_theme( $profile['stylesheet'] );
+
+				$currently_active_plugins = get_option( 'active_plugins', array() );
+
+				foreach ( $currently_active_plugins as $active_plugin ) {
+					if ( !in_array( $active_plugin, $profile['plugins'] ) ) {
+						deactivate_plugins( $active_plugin, true );
+					}
+				}
+
+				foreach ( $profile['plugins'] as $plugin ) {
+					if ( !in_array( $plugin, $currently_active_plugins ) ) {
+						activate_plugin( $plugin, '', false, true );
+					}
+				}
+				$message = "Dev profile '{$_POST['select-profile']}' successfully enabled";
 			}
-			?>
-			</select>
-			<input type="submit" class="button" name="submit" value="Enable Profile" />
-		</form>
-	</div>
-	<div id="dev-profile-info">
-	</div>
-	<script type="text/javascript">
-		jQuery(document).ready(function($) {
-			var profiles = <?php echo json_encode($profiles) ?>;
-			
-			$('#select_profile').change(function(element) {
-				var profile = profiles[$('#select_profile').val()];
-				$('#dev-profile-info').empty().append(
-					"<h4>Profile Details: " + $('#select_profile').val() + "</h4>" +
-					"<p><strong>Theme: </strong>" + profile['theme'] + "</p>" +
-					"<p><strong>Plugins:</strong></p>" +
-					"<ul><li>" +
-					profile['plugins'].join("</li><li>") +
-					"</li></ul>"
-				);
-			});
-		});
-	</script>
-</div>
-<?php
+		}
+		include plugin_dir_path( __FILE__ ) . 'views/profiles.php';
+	}
 }
+
+WP_Dev_Profiles::start();
