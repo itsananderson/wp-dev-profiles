@@ -1,6 +1,6 @@
 <?php
 /*
- * Plugin Name: Developer Profiles
+ * Plugin Name: WP Developer Profiles
  * Plugin URI: http://www.itsananderson.com/plugins/dev-profiles/
  * Description: Save and activate theme and plugin profiles for different projects
  * Plugin Author: Will Anderson
